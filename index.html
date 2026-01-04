@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Donation Receipt</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link href="https://fonts.googleapis.com/css2?family=Manjari:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+body{
+  font-family:'Manjari',sans-serif;
+  background:#f2f2f2;
+  padding:20px;
+  text-align:center;
+}
+
+/* controls */
+.control input, .control button{
+  width:260px;
+  padding:14px;
+  margin:6px 0;
+  border-radius:10px;
+  font-size:16px;
+}
+.control input{ border:1px solid #ccc; }
+.search-btn{ background:#0b3b91; color:#fff; border:none; }
+.pdf-btn{ background:#0b7d4a; color:#fff; border:none; }
+
+/* receipt */
+#receipt{
+  width:800px;
+  height:1130px;
+  margin:auto;
+  background:url('background.png') no-repeat center;
+  background-size:contain;
+  position:relative;
+  display:none;
+}
+
+/* fields */
+.field{
+  position:absolute;
+  font-size:18px;
+  font-weight:700;
+}
+
+/* adjust positions if needed */
+#rno{ top:80px; right:100px; }
+#date{ top:130px; right:100px; }
+
+#name{ top:300px; left:120px; width:560px; text-align:center; }
+#amount{ top:170px; left:150px; font-size:22px; }
+#mode{ top:350px; left:120px; width:560px; text-align:center; }
+
+#signature{
+  bottom:200px;
+  right:140px;
+  text-align:center;
+}
+#signature img{ width:140px; }
+
+/* mobile */
+@media(max-width:900px){
+  #receipt{
+    transform:scale(0.45);
+    transform-origin:top center;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="control">
+  <input type="text" id="receiptInput" placeholder="Receipt Number">
+  <br>
+  <button class="search-btn" onclick="searchReceipt()">New Search</button>
+  <br>
+  <button class="pdf-btn" onclick="downloadPDF()">Auto PDF Download</button>
+</div>
+
+<div id="receipt">
+  <div class="field" id="rno"></div>
+  <div class="field" id="date"></div>
+  <div class="field" id="amount"></div>
+
+  <div class="field" id="name"></div>
+  <div class="field" id="mode"></div>
+
+  <div class="field" id="signature">
+    <img src="signature.png"><br>
+    <small id="sigText"></small>
+  </div>
+</div>
+
+<script>
+const TSV_URL =
+"https://docs.google.com/spreadsheets/d/e/2PACX-1vRbGUZhtMFw7xyfMvQ40Cf2R3PAI7oR-dRTBBhmwzHEIJFj__066F0l5f0gmk3jv2-oHgHRnMGVyRqr/pub?gid=58253840&single=true&output=tsv";
+
+let currentRow=null;
+
+function searchReceipt(){
+  const no=document.getElementById("receiptInput").value.trim();
+  if(!no){ alert("Receipt Number നൽകുക"); return; }
+
+  fetch(TSV_URL)
+  .then(r=>r.text())
+  .then(t=>{
+    const rows=t.trim().split("\n").slice(1).map(r=>r.split("\t"));
+    currentRow=rows.find(r=>r[0] && r[0].trim()===no);
+
+    if(!currentRow){
+      alert("Receipt not found");
+      return;
+    }
+
+    document.getElementById("rno").innerText="Receipt No: "+currentRow[0];
+    document.getElementById("date").innerText="Date: "+currentRow[1];
+    document.getElementById("name").innerHTML=
+      "ബഹുമാനപ്പെട്ട<br><b>"+currentRow[2]+"</b>";
+    document.getElementById("amount").innerText="₹ "+currentRow[3];
+    document.getElementById("mode").innerText=
+      "Mode of Payment: "+currentRow[4];
+    document.getElementById("sigText").innerText=currentRow[5];
+
+    document.getElementById("receipt").style.display="block";
+  });
+}
+
+function downloadPDF(){
+  if(!currentRow){
+    alert("ആദ്യം Receipt search ചെയ്യുക");
+    return;
+  }
+  const no=currentRow[0];
+  html2pdf().set({
+    margin:0,
+    filename:`Receipt_${no}.pdf`,
+    image:{type:'jpeg',quality:1},
+    html2canvas:{scale:2},
+    jsPDF:{unit:'px',format:[800,1130]}
+  }).from(document.getElementById("receipt")).save();
+}
+</script>
+
+</body>
+</html>
